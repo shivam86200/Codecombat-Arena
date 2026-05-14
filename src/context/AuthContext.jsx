@@ -6,6 +6,8 @@ import React, {
   useCallback,
 } from 'react';
 import api from '../services/api';
+import { auth } from '../services/firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 /* ─── Context ──────────────────────────────────────────── */
 const AuthContext = createContext(null);
@@ -62,16 +64,27 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   }, [fetchMe]);
 
-  /* ── logout ───────────────────────────────────────────
-     POST /api/auth/logout → server clears the cookie.
+  /* ── loginWithGoogle ─────────────────────────────────
+     Uses Firebase to get an ID token, then sends it to our
+     backend to create a session.
   ─────────────────────────────────────────────────────── */
-  const logout = useCallback(async () => {
+  const loginWithGoogle = useCallback(async () => {
     try {
-      await api.post('/auth/logout');
-    } catch {
-      // Even if request fails, clear local state
+      setLoading(true);
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+      
+      // Send token to our backend
+      const response = await api.post('/auth/firebase', { idToken });
+      const userData = response.data?.data?.user || response.data?.user;
+      setUser(userData);
+      return response.data;
+    } catch (error) {
+      console.error('Google login error:', error);
+      throw error;
     } finally {
-      setUser(null);
+      setLoading(false);
     }
   }, []);
 
@@ -83,6 +96,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     fetchMe,
+    loginWithGoogle,
   };
 
   return (

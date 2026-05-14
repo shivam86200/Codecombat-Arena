@@ -61,7 +61,7 @@ const GoogleIcon = () => (
 /* ─── Register Page ──────────────────────────────────── */
 const Register = () => {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
 
   const [form, setForm] = useState({ name: '', username: '', email: '', password: '', confirmPassword: '' });
   const [errors, setErrors] = useState({ name: '', username: '', email: '', password: '', confirmPassword: '' });
@@ -104,12 +104,21 @@ const Register = () => {
     setErrors((prev) => ({ ...prev, [field]: runValidation(field, form[field]) }));
   };
 
-  const isFormValid =
-    !validateName(form.name) &&
-    !validateUsername(form.username) &&
-    !validateEmail(form.email) &&
-    !validatePassword(form.password) &&
     !validateConfirmPassword(form.password, form.confirmPassword);
+
+  const handleGoogleLogin = async () => {
+    try {
+      setLoading(true);
+      setServerError('');
+      await loginWithGoogle();
+      navigate('/dashboard');
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Google Login failed.';
+      setServerError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /* ── Submit ─────────────────────────────────────── */
   const handleSubmit = async (e) => {
@@ -181,7 +190,8 @@ const Register = () => {
           {/* Google SSO Button */}
           <button
             type="button"
-            onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'}
+            onClick={handleGoogleLogin}
+            disabled={loading}
             className="
               w-full flex items-center justify-center gap-3
               px-4 py-2.5 rounded-lg text-sm font-medium

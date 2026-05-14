@@ -246,3 +246,58 @@ exports.googleCallback = catchAsync(async (req, res, next) => {
   // 5. Redirect to Dashboard
   res.redirect(`${clientOrigin}/dashboard`);
 });
+
+/**
+ * Handle Firebase Authentication
+ * POST /api/auth/firebase
+ */
+exports.firebaseLogin = catchAsync(async (req, res, next) => {
+  const { idToken } = req.body;
+
+  if (!idToken) {
+    return next(new AppError('No Firebase ID token provided.', 400));
+  }
+
+  // 1. Verify token
+  const admin = require('../utils/firebase');
+  let decodedToken;
+  try {
+    decodedToken = await admin.auth().verifyIdToken(idToken);
+  } catch (error) {
+    console.error('Firebase token verification error:', error);
+    return next(new AppError('Invalid Firebase token.', 401));
+  }
+
+  const { email, name, picture, uid } = decodedToken;
+
+  if (!email) {
+    return next(new AppError('Firebase account missing email.', 401));
+  }
+
+  // 2. Find or create user
+  let user = await User.findOne({ email });
+
+  if (!user) {
+    // Extract a username from email if not present
+    const username = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') + Math.floor(Math.random() * 1000);
+    
+    user = await User.create({
+      name: name || email.split('@')[0],
+      email: email,
+      username: username,
+      googleId: uid, // Use Firebase UID as googleId for consistency
+      passwordSet: false,
+      passwordHash: require('crypto').randomBytes(16).toString('hex'),
+    });
+
+    // Grant signup bonus
+    const { processTransaction } = require('../services/walletService');
+    await processTransaction(user._id, 400, 'SIGNUP');
+  } else if (!user.googleId) {
+    user.googleId = uid;
+    await user.save();
+  }
+
+  // 3. Send JWT token
+  createSendToken(user, 200, res);
+});

@@ -29,6 +29,7 @@ router.post('/logout',   authController.logout);
 // Google OAuth routes
 router.get('/google', authController.googleAuth);
 router.get('/google/callback', authController.googleCallback);
+router.post('/firebase', authController.firebaseLogin);
 
 // Protected routes
 router.get('/me', authRequired, authController.getMe);

@@ -44,7 +44,7 @@ const GoogleIcon = () => (
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const from = location.state?.from?.pathname || '/dashboard';
 
   const [form, setForm] = useState({ email: '', password: '' });
@@ -54,6 +54,19 @@ const Login = () => {
   const [serverError, setServerError] = useState('');
 
   /* ── Handlers ───────────────────────────── */
+  const handleGoogleLogin = async () => {
+    try {
+      setLoading(true);
+      setServerError('');
+      await loginWithGoogle();
+      navigate(from, { replace: true });
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Google Login failed.';
+      setServerError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
   const handleChange = (field) => (e) => {
     const value = e.target.value;
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -131,7 +144,8 @@ const Login = () => {
           {/* Google SSO Button */}
           <button
             type="button"
-            onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'}
+            onClick={handleGoogleLogin}
+            disabled={loading}
             className="
               w-full flex items-center justify-center gap-3
               px-4 py-2.5 rounded-lg text-sm font-medium
