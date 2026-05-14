@@ -88,6 +88,19 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  /* ── logout ───────────────────────────────────────────
+     POST /api/auth/logout → server clears the cookie.
+  ─────────────────────────────────────────────────────── */
+  const logout = useCallback(async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // Even if request fails, clear local state
+    } finally {
+      setUser(null);
+    }
+  }, []);
+
   const value = {
     user,
     loading,

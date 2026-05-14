@@ -104,6 +104,11 @@ const Register = () => {
     setErrors((prev) => ({ ...prev, [field]: runValidation(field, form[field]) }));
   };
 
+  const isFormValid =
+    !validateName(form.name) &&
+    !validateUsername(form.username) &&
+    !validateEmail(form.email) &&
+    !validatePassword(form.password) &&
     !validateConfirmPassword(form.password, form.confirmPassword);
 
   const handleGoogleLogin = async () => {
